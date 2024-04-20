@@ -16,10 +16,18 @@ The PyTorch implementation of GAGA.
 
    - Requirements
 
-     Details in `gaga_env.yaml`, [conda](https://docs.conda.io/en/latest/) (an open source package management tool) is recommended.
+      [conda](https://docs.conda.io/en/latest/) (an open source package management tool) is recommended.
 
-     ```bash
-     conda env create -f gaga_env.yaml
+      ```bash
+      conda create -n gaga python=3.7
+      conda activate gaga
+
+      conda install pytorch torchvision torchaudio pytorch-cuda=12.1 -c pytorch -c nvidia
+      conda install -c dglteam/label/cu121 dgl
+
+      pip install numpy pandas scikit-learn tensorboard matplotlib
+
+      conda clean --all
      ```
 
 2. Prepare sequence data.
