@@ -14,10 +14,10 @@ def calc_acc(y_true, y_pred):
 
 
 def calc_f1(y_true, y_pred):
-    f1_binary_1_gnn = metrics.f1_score(y_true, y_pred, pos_label=1, average='binary')
-    f1_binary_0_gnn = metrics.f1_score(y_true, y_pred, pos_label=0, average='binary')
-    f1_micro_gnn = metrics.f1_score(y_true, y_pred, average='micro')
-    f1_macro_gnn = metrics.f1_score(y_true, y_pred, average='macro')
+    f1_binary_1_gnn = metrics.f1_score(y_true, y_pred, pos_label=1, average='binary', zero_division=0)
+    f1_binary_0_gnn = metrics.f1_score(y_true, y_pred, pos_label=0, average='binary', zero_division=0)
+    f1_micro_gnn = metrics.f1_score(y_true, y_pred, average='micro', zero_division=0)
+    f1_macro_gnn = metrics.f1_score(y_true, y_pred, average='macro', zero_division=0)
 
     return f1_binary_1_gnn, f1_binary_0_gnn, f1_micro_gnn, f1_macro_gnn
 
@@ -110,9 +110,9 @@ def eval_model(y_true, y_prob, y_pred):
     ap_gnn, best_pr_thres = calc_ap_and_thres(y_true, y_prob)
 
     # recall的计算注意，有 binary+pos_label 的值，有 micro 和 macro 的值
-    precision_1 = metrics.precision_score(y_true, y_pred, pos_label=1, average="binary")
-    recall_1 = metrics.recall_score(y_true, y_pred, pos_label=1, average='binary')
-    recall_macro = metrics.recall_score(y_true, y_pred, average='macro')
+    precision_1 = metrics.precision_score(y_true, y_pred, pos_label=1, average="binary", zero_division=0)
+    recall_1 = metrics.recall_score(y_true, y_pred, pos_label=1, average='binary', zero_division=0)
+    recall_macro = metrics.recall_score(y_true, y_pred, average='macro', zero_division=0)
 
     # 计算混淆矩阵(多余操作)
     conf_gnn = metrics.confusion_matrix(y_true, y_pred)

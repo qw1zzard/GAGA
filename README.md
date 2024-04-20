@@ -19,7 +19,7 @@ The PyTorch implementation of GAGA.
       [conda](https://docs.conda.io/en/latest/) (an open source package management tool) is recommended.
 
       ```bash
-      conda create -n gaga python=3.7
+      conda create -n gaga python=3.8
       conda activate gaga
 
       conda install pytorch torchvision torchaudio pytorch-cuda=12.1 -c pytorch -c nvidia
