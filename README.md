@@ -50,7 +50,7 @@ The PyTorch implementation of GAGA.
 
    ```bash
    python main_transformer.py --config configs/yelpchi_paper.json --gpu 0  --log_dir logs --early_stop 100
-   python main_transformer.py --config configs/amazon_paper.json --gpu 1  --log_dir logs --early_stop 100
+   python main_transformer.py --config configs/amazon_paper.json --gpu 0  --log_dir logs --early_stop 100
    ```
 
 
