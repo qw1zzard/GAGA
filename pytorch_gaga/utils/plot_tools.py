@@ -18,7 +18,7 @@ def plot_roc_curve(y_true, y_prob, name='ROC-AUC Curve'):
     plt.ylabel('TPR', fontsize=14)
     plt.tick_params(labelsize=10)
 
-    plt.plot(fpr, tpr, label=f"AUC={roc_auc:.4f}")
+    plt.plot(fpr, tpr, label=f'AUC={roc_auc:.4f}')
 
     plt.legend(loc='lower right')
 
@@ -42,7 +42,7 @@ def plot_pr_curve(y_true, y_prob, name='PR Curve'):
     plt.ylabel('TPR', fontsize=14)
     plt.tick_params(labelsize=10)
 
-    plt.plot(recall, precision, label=f"AP={ap_gnn:.4f}")
+    plt.plot(recall, precision, label=f'AP={ap_gnn:.4f}')
 
     plt.legend(loc='lower left')
 

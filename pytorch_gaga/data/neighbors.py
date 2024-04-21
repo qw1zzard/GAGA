@@ -7,8 +7,8 @@ import pickle
 
 
 class MultiHopFullNeighborSampler:
-    """Sampler that collects all the neighbors within R hops.
-    """
+    """Sampler that collects all the neighbors within R hops."""
+
     store_args_list = ['dt_name']
     log_domain = 'MultiHopFullNeighborSampler'
 
@@ -18,8 +18,9 @@ class MultiHopFullNeighborSampler:
             for k, v in kwargs.items():
                 if k in self.store_args_list:
                     self.store_kwargs[k] = v
-            assert 'dt_name' in self.store_kwargs, \
-                "If store=True, 'data_name' should be specified. (e.g. dt_name='yelp')"
+            assert (
+                'dt_name' in self.store_kwargs
+            ), "If store=True, 'data_name' should be specified. (e.g. dt_name='yelp')"
 
         self.graphs = copy.deepcopy(graphs)
 
@@ -44,13 +45,17 @@ class MultiHopFullNeighborSampler:
                 self.mr_neighbors_dict[k] = self._k_hop_neighbors(k, self.n_hops)
         else:
             DATA_DIR = os.path.dirname(__file__)
-            fn_dir = os.path.join(DATA_DIR, f'../subgraphs/{self.store_kwargs["dt_name"]}')
+            fn_dir = os.path.join(
+                DATA_DIR, f'../subgraphs/{self.store_kwargs["dt_name"]}'
+            )
 
             # Check if all pickle objects are available
             if self._check_path(fn_dir):
                 for k in self.relations:
                     fn_path = os.path.join(fn_dir, f'{self.n_hops}_hops_{k}.pkl')
-                    print(f'[{self.log_domain}] Loading subgraphs\' nids from {fn_path} for relation {k}')
+                    print(
+                        f"[{self.log_domain}] Loading subgraphs' nids from {fn_path} for relation {k}"
+                    )
 
                     with open(fn_path, 'rb') as f:
                         nb_list = pickle.load(f)
@@ -92,5 +97,5 @@ class MultiHopFullNeighborSampler:
         return neighbor_list
 
     def load_neighbors(self, relation: str):
-        assert relation in self.relations, f"No relation named {relation}"
+        assert relation in self.relations, f'No relation named {relation}'
         return self.mr_neighbors_dict[relation]

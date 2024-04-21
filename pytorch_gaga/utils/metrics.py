@@ -14,8 +14,12 @@ def calc_acc(y_true, y_pred):
 
 
 def calc_f1(y_true, y_pred):
-    f1_binary_1_gnn = metrics.f1_score(y_true, y_pred, pos_label=1, average='binary', zero_division=0)
-    f1_binary_0_gnn = metrics.f1_score(y_true, y_pred, pos_label=0, average='binary', zero_division=0)
+    f1_binary_1_gnn = metrics.f1_score(
+        y_true, y_pred, pos_label=1, average='binary', zero_division=0
+    )
+    f1_binary_0_gnn = metrics.f1_score(
+        y_true, y_pred, pos_label=0, average='binary', zero_division=0
+    )
     f1_micro_gnn = metrics.f1_score(y_true, y_pred, average='micro', zero_division=0)
     f1_macro_gnn = metrics.f1_score(y_true, y_pred, average='macro', zero_division=0)
 
@@ -30,8 +34,8 @@ def calc_roc_and_thres(y_true, y_prob):
     J = tpr - fpr
     # 输出KS值
     ks_val = max(abs(J))
-    print(f"(Kolmogorov-Smirnov) KS = {ks_val:>2.4f}\n")
-    
+    print(f'(Kolmogorov-Smirnov) KS = {ks_val:>2.4f}\n')
+
     idx = J.argmax(axis=0)
     best_thres = thresholds[idx]
     return auc_gnn, best_thres
@@ -110,9 +114,15 @@ def eval_model(y_true, y_prob, y_pred):
     ap_gnn, best_pr_thres = calc_ap_and_thres(y_true, y_prob)
 
     # recall的计算注意，有 binary+pos_label 的值，有 micro 和 macro 的值
-    precision_1 = metrics.precision_score(y_true, y_pred, pos_label=1, average="binary", zero_division=0)
-    recall_1 = metrics.recall_score(y_true, y_pred, pos_label=1, average='binary', zero_division=0)
-    recall_macro = metrics.recall_score(y_true, y_pred, average='macro', zero_division=0)
+    precision_1 = metrics.precision_score(
+        y_true, y_pred, pos_label=1, average='binary', zero_division=0
+    )
+    recall_1 = metrics.recall_score(
+        y_true, y_pred, pos_label=1, average='binary', zero_division=0
+    )
+    recall_macro = metrics.recall_score(
+        y_true, y_pred, average='macro', zero_division=0
+    )
 
     # 计算混淆矩阵(多余操作)
     conf_gnn = metrics.confusion_matrix(y_true, y_pred)
@@ -120,25 +130,51 @@ def eval_model(y_true, y_prob, y_pred):
     tn, fp, fn, tp = conf_gnn.ravel()
 
     # 1:fraud->positive, 0:benign->negtive
-    print(f"f1-macro={f1_macro:>2.4f} | AUC={auc_gnn:>2.4f}\n"
-          f"Gmean={gmean_gnn:>2.4f} | AP(gnn)={ap_gnn:>2.4f}\n"
-          f"Precision(1)={precision_1:>2.4f} | Recall(1)={recall_1:>2.4f}")
+    print(
+        f'f1-macro={f1_macro:>2.4f} | AUC={auc_gnn:>2.4f}\n'
+        f'Gmean={gmean_gnn:>2.4f} | AP(gnn)={ap_gnn:>2.4f}\n'
+        f'Precision(1)={precision_1:>2.4f} | Recall(1)={recall_1:>2.4f}'
+    )
 
-    print(f"TN={tn:>5d} FP={fp:>5d} FN={fn:>5d} TP={tp:>5d}")
+    print(f'TN={tn:>5d} FP={fp:>5d} FN={fn:>5d} TP={tp:>5d}')
 
-    print(f"f1-fraud={f1_binary_1:>2.4f} | f1-benign={f1_binary_0:>2.4f}\n"
-          f"f1-micro={f1_micro:>2.4f} | f1-macro={f1_macro:>2.4f}\n"
-          f"ACC={acc:>2.4f} | Recall(macro)={recall_macro:>2.4f}\n")
+    print(
+        f'f1-fraud={f1_binary_1:>2.4f} | f1-benign={f1_binary_0:>2.4f}\n'
+        f'f1-micro={f1_micro:>2.4f} | f1-macro={f1_macro:>2.4f}\n'
+        f'ACC={acc:>2.4f} | Recall(macro)={recall_macro:>2.4f}\n'
+    )
 
     # print(metrics.classification_report(y_true=labels, y_pred=preds, digits=4))
 
-    DataType = namedtuple('Metrics', ['f1_binary_1', 'f1_binary_0', 'f1_macro', 'auc_gnn',
-                                      'gmean_gnn', 'recall_1', 'precision_1', 'ap_gnn',
-                                      'best_roc_thres', 'best_pr_thres', 'recall_macro'])
-    results = DataType(f1_binary_1=f1_binary_1, f1_binary_0=f1_binary_0, f1_macro=f1_macro,
-                       auc_gnn=auc_gnn, gmean_gnn=gmean_gnn, ap_gnn=ap_gnn,
-                       recall_1=recall_1, precision_1=precision_1, recall_macro=recall_macro,
-                       best_pr_thres=best_pr_thres, best_roc_thres=best_roc_thres)
+    DataType = namedtuple(
+        'Metrics',
+        [
+            'f1_binary_1',
+            'f1_binary_0',
+            'f1_macro',
+            'auc_gnn',
+            'gmean_gnn',
+            'recall_1',
+            'precision_1',
+            'ap_gnn',
+            'best_roc_thres',
+            'best_pr_thres',
+            'recall_macro',
+        ],
+    )
+    results = DataType(
+        f1_binary_1=f1_binary_1,
+        f1_binary_0=f1_binary_0,
+        f1_macro=f1_macro,
+        auc_gnn=auc_gnn,
+        gmean_gnn=gmean_gnn,
+        ap_gnn=ap_gnn,
+        recall_1=recall_1,
+        precision_1=precision_1,
+        recall_macro=recall_macro,
+        best_pr_thres=best_pr_thres,
+        best_roc_thres=best_roc_thres,
+    )
 
     return results
 
@@ -152,11 +188,19 @@ def calc_mean_sd(results):
     SSD = np.std(results, axis=0, ddof=1)
 
     # print(MEAN, PSD, SSD)
-    metric_name = ['f1_macro', 'auc', 'gmean',
-                   'precision_1', 'recall_1', 'ap',
-                   'f1_binary_1', 'f1_binary_0', 'recall_macro']
+    metric_name = [
+        'f1_macro',
+        'auc',
+        'gmean',
+        'precision_1',
+        'recall_1',
+        'ap',
+        'f1_binary_1',
+        'f1_binary_0',
+        'recall_macro',
+    ]
     for i, name in enumerate(metric_name):
-        print("{}= {:1.4f}±{:1.4f}".format(name, MEAN[i], SSD[i]))
+        print('{}= {:1.4f}±{:1.4f}'.format(name, MEAN[i], SSD[i]))
 
 
 class ThresholdSelector:
@@ -166,14 +210,16 @@ class ThresholdSelector:
             self.save_dir = os.path.join(log_dir, self.save_dir)
         os.makedirs(self.save_dir, exist_ok=True)
 
-        self.file_name = f"val_probs_{start_wall_time}.npy"
+        self.file_name = f'val_probs_{start_wall_time}.npy'
         self.save_path = os.path.join(self.save_dir, self.file_name)
 
         # probs: torch.Tensor
         self.probs = None
         self.best_thres = 0.5
 
-        print(f"[{self.__class__.__name__}] Saving threshold_moving_logs to {self.save_path}")
+        print(
+            f'[{self.__class__.__name__}] Saving threshold_moving_logs to {self.save_path}'
+        )
 
     def save_probs(self, probs: torch.Tensor):
         self.probs = probs
@@ -188,12 +234,12 @@ class ThresholdSelector:
         benchmark_list = []
         result_list = []
         for thres in thresholds:
-            print(f"Thres={thres:.2f}")
+            print(f'Thres={thres:.2f}')
             result = eval_model(labels, self.probs[:, 1], thres=thres)
             result_list.append(result)
             benchmark_list.append(result.f1_binary_0)
 
         self.best_thres = thresholds[np.array(benchmark_list).argmax(axis=0)]
-        print(f"[{self.__class__.__name__}] Best threshold is {self.best_thres:.2f}")
+        print(f'[{self.__class__.__name__}] Best threshold is {self.best_thres:.2f}')
 
         return self.best_thres

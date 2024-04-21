@@ -35,8 +35,10 @@ def load_sequence_data(args):
     file_dir = os.path.join(args['base_dir'], args['dataset'])
 
     # 读取dataset info array
-    info_name = f"{args['dataset']}_infos_" \
-                f"{args['train_size']}_{args['val_size']}_{args['seed']}.npz"
+    info_name = (
+        f"{args['dataset']}_infos_"
+        f"{args['train_size']}_{args['val_size']}_{args['seed']}.npz"
+    )
     info_file = os.path.join(file_dir, info_name)
     info_data = np.load(info_file)
 
@@ -52,19 +54,34 @@ def load_sequence_data(args):
 
     flag_1 = 'grp_norm' if args['grp_norm'] else 'no_grp_norm'
     flag_2 = 'norm_feat' if args['norm_feat'] else 'no_norm_feat'
-    file_name = f"{args['dataset']}_{flag_1}_{flag_2}_{args['n_hops']}_" \
-                f"{args['train_size']}_{args['val_size']}_{args['seed']}.npy"
+    file_name = (
+        f"{args['dataset']}_{flag_1}_{flag_2}_{args['n_hops']}_"
+        f"{args['train_size']}_{args['val_size']}_{args['seed']}.npy"
+    )
     seq_file = os.path.join(file_dir, file_name)
 
-    sequence_array = np.memmap(seq_file, dtype=np.float32, mode='r+', shape=(n_nodes, seq_len, feat_dim))
+    sequence_array = np.memmap(
+        seq_file, dtype=np.float32, mode='r+', shape=(n_nodes, seq_len, feat_dim)
+    )
 
     seq_data = torch.tensor(sequence_array)
     # (N, S, E) -> (S, N, E)
     # seq_data = torch.transpose(seq_data, 1, 0)
-    print(f"[Global] Dataset <{args['dataset']}> Overview\n"
-          f"\tEntire (postive/total) {torch.sum(labels):>6} / {labels.shape[0]:<6}\n"
-          f"\tTrain  (postive/total) {torch.sum(labels[train_nid]):>6} / {labels[train_nid].shape[0]:<6}\n"
-          f"\tValid  (postive/total) {torch.sum(labels[val_nid]):>6} / {labels[val_nid].shape[0]:<6}\n"
-          f"\tTest   (postive/total) {torch.sum(labels[test_nid]):>6} / {labels[test_nid].shape[0]:<6}\n")
+    print(
+        f"[Global] Dataset <{args['dataset']}> Overview\n"
+        f"\tEntire (postive/total) {torch.sum(labels):>6} / {labels.shape[0]:<6}\n"
+        f"\tTrain  (postive/total) {torch.sum(labels[train_nid]):>6} / {labels[train_nid].shape[0]:<6}\n"
+        f"\tValid  (postive/total) {torch.sum(labels[val_nid]):>6} / {labels[val_nid].shape[0]:<6}\n"
+        f"\tTest   (postive/total) {torch.sum(labels[test_nid]):>6} / {labels[test_nid].shape[0]:<6}\n"
+    )
 
-    return seq_data, labels, train_nid, val_nid, test_nid, feat_dim, n_classes, n_relations
+    return (
+        seq_data,
+        labels,
+        train_nid,
+        val_nid,
+        test_nid,
+        feat_dim,
+        n_classes,
+        n_relations,
+    )

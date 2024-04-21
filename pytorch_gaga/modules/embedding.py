@@ -7,7 +7,7 @@ class CustomEncoder(nn.Module):
         r"""Hop, relation and group encoding strategies.
         This part conresponds to Section 4.3 in our paper.
 
-        The shape of the output is (S, N, E), where S is input sequence length 
+        The shape of the output is (S, N, E), where S is input sequence length
         ($S = n_relations \times (n_hops \times (n_classes + 1) + 1)$),
         N is the batch size, E is the output embedding size.
 
@@ -20,15 +20,15 @@ class CustomEncoder(nn.Module):
         n_classes: int
             Number of classes; e.g., fraud detection only involves 2 classes.
         n_hops: int
-            Number of hops/layers. 
+            Number of hops/layers.
         n_relations: int
             Number of relations.
         dropout: float
             Dropout rate on feature. Default=0.1.
-        
+
         Return : torch.Tensor
-            Feature sequence with encoding strategies as the input of transformer 
-            encoder. 
+            Feature sequence with encoding strategies as the input of transformer
+            encoder.
         """
         super(CustomEncoder, self).__init__()
         self.hop_embedding = HopEmbedding(n_hops + 1, emb_dim)
@@ -36,8 +36,7 @@ class CustomEncoder(nn.Module):
         self.group_embedding = GroupEmbedding(n_classes + 1, emb_dim)
 
         # linear  projection
-        self.MLP = nn.Sequential(nn.Linear(feat_dim, emb_dim),
-                                 nn.ReLU())
+        self.MLP = nn.Sequential(nn.Linear(feat_dim, emb_dim), nn.ReLU())
 
         self.dropout = nn.Dropout(dropout)
 
@@ -61,7 +60,7 @@ class CustomEncoder(nn.Module):
         hop_idx = torch.arange(self.n_hops + 1, dtype=torch.int64).to(device)
         rel_idx = torch.arange(self.n_relations, dtype=torch.int64).to(device)
         grp_idx = torch.arange(self.n_groups, dtype=torch.int64).to(device)
-        
+
         # -------- HOP ENCODING STRATEGY --------
         # hop_emb (n_hops+1, E)
         hop_emb = self.hop_embedding(hop_idx)
@@ -79,7 +78,7 @@ class CustomEncoder(nn.Module):
         rel_emb = self.relation_embedding(rel_idx)
         # (S, E)  S = n_realtions*base_seq_len
         rel_emb = rel_emb.repeat(1, self.base_seq_len).view(-1, self.emb_dim)
-        
+
         # -------- GROUP ENCODING STRATEGY --------
         # grp_emb (n_groups, E)
         # grp_emb for the target node (* unknown group)
@@ -89,14 +88,16 @@ class CustomEncoder(nn.Module):
         # (n_hop*n_groups, E)
         hop_grp_emb = grp_emb.repeat(self.n_hops, 1)
         # (S,E) S = n_realtions*base_seq_len
-        grp_emb = torch.cat((center_grp_emb, hop_grp_emb), dim=0).repeat(self.n_relations, 1)
+        grp_emb = torch.cat((center_grp_emb, hop_grp_emb), dim=0).repeat(
+            self.n_relations, 1
+        )
 
         # linear projection
         out = self.MLP(x)
-        
-        # broadcast x: [S, N, E] + (S,1,E) 
+
+        # broadcast x: [S, N, E] + (S,1,E)
         out = out + hop_emb.unsqueeze(1) + rel_emb.unsqueeze(1) + grp_emb.unsqueeze(1)
-        
+
         out = self.dropout(out)
 
         return out
@@ -119,7 +120,7 @@ class HopEmbedding(nn.Embedding):
 class RelationEmbedding(nn.Embedding):
     def __init__(self, max_len: int, emb_dim=128):
         """Relation Embeddings.
-        
+
         Parameters
         ----------
         max_len: int
@@ -133,7 +134,7 @@ class RelationEmbedding(nn.Embedding):
 class GroupEmbedding(nn.Embedding):
     def __init__(self, max_len: int, emb_dim=128):
         """Group Embeddings.
-        
+
         Parameters
         ----------
         max_len: int

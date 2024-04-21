@@ -12,12 +12,12 @@ def load_config(config_path):
 
 
 def show_configuration(train_config):
-    print("*********** TRAIN CONFIGURATION ***********")
+    print('*********** TRAIN CONFIGURATION ***********')
     for k, v in sorted(train_config.items()):
         if isinstance(v, bool):
             v = 'True' if v else 'False'
-        print("{:<15} {}".format(k, v))
-    print("*********** TRAIN CONFIGURATION ***********")
+        print('{:<15} {}'.format(k, v))
+    print('*********** TRAIN CONFIGURATION ***********')
 
 
 def setup_args(args, train_config):

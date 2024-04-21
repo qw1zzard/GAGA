@@ -12,7 +12,7 @@ from data import fraud_dataset
 def normalize(feats, train_nid, dtype=np.float32):
     r"""Standardize features by removing the mean and scaling to unit variance.
     Reference: <sklearn.preprocessing.StandardScaler>
-    
+
     Parameters
     ----------
     feats : np.ndarray
@@ -35,7 +35,7 @@ def normalize(feats, train_nid, dtype=np.float32):
 def row_normalize(mx, dtype=np.float32):
     r"""Row-normalize sparse matrix.
     Reference: <https://github.com/williamleif/graphsage-simple>
-    
+
     Parameters
     ----------
     mx : np.ndarray
@@ -51,26 +51,34 @@ def row_normalize(mx, dtype=np.float32):
     r_inv[np.isinf(r_inv)] = 0.0
     r_mat_inv = sp.diags(r_inv)
     mx = r_mat_inv.dot(mx)
-    
+
     return mx.astype(dtype)
 
 
-def load_graphs(dataset_name='amazon', raw_dir='~/.dgl/', train_size=0.4, val_size=0.1,
-                seed=717, norm=True, force_reload=False, verbose=True) -> dict:
+def load_graphs(
+    dataset_name='amazon',
+    raw_dir='~/.dgl/',
+    train_size=0.4,
+    val_size=0.1,
+    seed=717,
+    norm=True,
+    force_reload=False,
+    verbose=True,
+) -> dict:
     r"""Load dataset.
-    This function loads graph-structured data from dgl's build-in spam review dataset 
-    and baidu's large-scale website anti-fraud dataset. 
+    This function loads graph-structured data from dgl's build-in spam review dataset
+    and baidu's large-scale website anti-fraud dataset.
 
-    The implementation here is redundant and unnecessary, and can be handled directly 
-    using dgl's heterogeneous graph. Currently, each image is processed separately to 
+    The implementation here is redundant and unnecessary, and can be handled directly
+    using dgl's heterogeneous graph. Currently, each image is processed separately to
     be compatible with later datasets that has multiple node features.
-    
+
     Parameters
     ----------
     dataset_name : str
         Name of the dataset.
     raw_dir : str
-        Specifying the directory that will store the downloaded data or the directory 
+        Specifying the directory that will store the downloaded data or the directory
         that already stores the processed input data. Default='~/.dgl'.
     train_size : float
         Training set size of the dataset. Default=0.4.
@@ -91,8 +99,13 @@ def load_graphs(dataset_name='amazon', raw_dir='~/.dgl/', train_size=0.4, val_si
         A dict of homogeneous graphs.
     """
     if dataset_name in ['amazon', 'yelp', 'mimic']:
-        fraud_data = fraud_dataset.FraudDataset(dataset_name, train_size=train_size, val_size=val_size,
-                                                random_seed=seed, force_reload=force_reload)
+        fraud_data = fraud_dataset.FraudDataset(
+            dataset_name,
+            train_size=train_size,
+            val_size=val_size,
+            random_seed=seed,
+            force_reload=force_reload,
+        )
     # elif dataset_name in ['BF10M']:
     #     fraud_data = baidu_dataset.BaiduFraudDataset(dataset_name, raw_dir=raw_dir,
     #                                                  train_size=train_size, val_size=val_size,
@@ -127,7 +140,7 @@ def load_graphs(dataset_name='amazon', raw_dir='~/.dgl/', train_size=0.4, val_si
     # mat = loadmat(mat_path)
     # graphs['homo'] = dgl.from_scipy(mat['homo'])
     g_homo = dgl.to_homogeneous(g)
-    
+
     # remove duplicate edges
     graphs['homo'] = dgl.to_simple(g_homo)
     for key, value in g.ndata.items():
@@ -139,26 +152,26 @@ def load_graphs(dataset_name='amazon', raw_dir='~/.dgl/', train_size=0.4, val_si
 def calc_weight(g):
     """Compute row_normalized(D^(-1/2)AD^(-1/2)).
     Reference: <>
-    
+
     Parameters
     ----------
     g : DGLGraph
         The homogeneous graph is used for calculating normalized edge weights.
-    
+
     Return : FloatTensor
         Edge weights.
     """
     with g.local_scope():
         # @todo (yuchen) 这里原本是 $\hat A = D^{-1/2}AD^{-1/2}$, 假设A=I,后期改一下
         # Computing D^(-0.5)*D(-1/2), assuming A is Identity
-        g.ndata["in_deg"] = g.in_degrees().float().pow(-0.5)
-        g.ndata["out_deg"] = g.out_degrees().float().pow(-0.5)
-        g.apply_edges(fn.u_mul_v("out_deg", "in_deg", "weight"))
+        g.ndata['in_deg'] = g.in_degrees().float().pow(-0.5)
+        g.ndata['out_deg'] = g.out_degrees().float().pow(-0.5)
+        g.apply_edges(fn.u_mul_v('out_deg', 'in_deg', 'weight'))
 
         # Row-normalize weight
-        g.update_all(fn.copy_e("weight", "msg"), fn.sum("msg", "norm"))
-        g.apply_edges(fn.e_div_v("weight", "norm", "weight"))
-        return g.edata["weight"]
+        g.update_all(fn.copy_e('weight', 'msg'), fn.sum('msg', 'norm'))
+        g.apply_edges(fn.e_div_v('weight', 'norm', 'weight'))
+        return g.edata['weight']
 
 
 def preprocess(args, g, features):
@@ -173,32 +186,34 @@ def preprocess(args, g, features):
         The input node features.
     args : dict.
         Arguments used for preprocessing multi-hop (donated as n_hops) averaged features.
-    
+
     Return : list
         A list that contains [0, args['n_hops']] hop's averaged node features.
         hop_feat_list = [feat_0, feat_1,...,feat_R]
     """
     # g = dgl.to_homogeneous(g)
     with torch.no_grad():
-        g.edata["weight"] = calc_weight(g)
-        g.ndata["feat_0"] = features
+        g.edata['weight'] = calc_weight(g)
+        g.ndata['feat_0'] = features
         for hop in range(1, args['n_hops'] + 1):
-            g.update_all(fn.u_mul_e(f"feat_{hop - 1}", "weight", "msg"),
-                         fn.sum("msg", f"feat_{hop}"))
+            g.update_all(
+                fn.u_mul_e(f'feat_{hop - 1}', 'weight', 'msg'),
+                fn.sum('msg', f'feat_{hop}'),
+            )
         hop_feat_list = []
         for hop in range(args['n_hops'] + 1):
-            hop_feat_list.append(g.ndata.pop(f"feat_{hop}"))
+            hop_feat_list.append(g.ndata.pop(f'feat_{hop}'))
         return hop_feat_list
 
 
 def prepare_data(args):
     """Preparing training data.
-    
+
     Parameters
     ----------
     args : dict
         Arguments for loading datasets and pre-computing multi-hop neighbours' node features.
-    
+
     Return : tuple
         Training data.
         feat_list is a list that contains $|relations|$ hop_feat_lists.
@@ -207,10 +222,15 @@ def prepare_data(args):
          ...,
          [feat_0, feat_1,...,feat_R]]  // hop-R
     """
-    graphs = load_graphs(dataset_name=args['dataset'], raw_dir=args['base_dir'],
-                         train_size=args['train_size'], val_size=args['val_size'],
-                         seed=args['seed'], norm=args['norm_feat'],
-                         force_reload=args['force_reload'])
+    graphs = load_graphs(
+        dataset_name=args['dataset'],
+        raw_dir=args['base_dir'],
+        train_size=args['train_size'],
+        val_size=args['val_size'],
+        seed=args['seed'],
+        norm=args['norm_feat'],
+        force_reload=args['force_reload'],
+    )
 
     # MR-Graphs share same {feat,label,mask}, here we can load homo_g
     g = graphs['homo']
@@ -236,11 +256,13 @@ def prepare_data(args):
             feats = preprocess(args, vg, vg.ndata['feature'].float())
             feat_list.append(feats)
 
-    print(f"[Global] Dataset <{args['dataset']}> Overview\n"
-          f"\tEntire (postive/total) {torch.sum(labels):>6} / {labels.shape[0]:<6}\n"
-          f"\tTrain  (postive/total) {torch.sum(labels[train_nid]):>6} / {labels[train_nid].shape[0]:<6}\n"
-          f"\tValid  (postive/total) {torch.sum(labels[val_nid]):>6} / {labels[val_nid].shape[0]:<6}\n"
-          f"\tTest   (postive/total) {torch.sum(labels[test_nid]):>6} / {labels[test_nid].shape[0]:<6}\n")
+    print(
+        f"[Global] Dataset <{args['dataset']}> Overview\n"
+        f"\tEntire (postive/total) {torch.sum(labels):>6} / {labels.shape[0]:<6}\n"
+        f"\tTrain  (postive/total) {torch.sum(labels[train_nid]):>6} / {labels[train_nid].shape[0]:<6}\n"
+        f"\tValid  (postive/total) {torch.sum(labels[val_nid]):>6} / {labels[val_nid].shape[0]:<6}\n"
+        f"\tTest   (postive/total) {torch.sum(labels[test_nid]):>6} / {labels[test_nid].shape[0]:<6}\n"
+    )
 
     return feat_list, labels, in_feats, n_classes, train_nid, val_nid, test_nid
 
@@ -255,9 +277,9 @@ def load_batch(batch, feat_list, device='cpu'):
     feat_list: list
         List of hop_feat_lists that contains the averaged multi-hop node features.
     device: str
-    
+
     Return: list
-        A list contains batched node features for each relation 
+        A list contains batched node features for each relation
         (asuming there are $P$ relations).
         [batch_feat_list_0, batch_feat_list_1, ..., batch_feat_list_P]
     """
@@ -278,13 +300,13 @@ def load_batch(batch, feat_list, device='cpu'):
 def _pos_neg_split(nids, labels):
     """Split positive and negtive nodes in array nids .
     @todo 大规模性能太差需要改进
-    
+
     Parameters
     ----------
     nids: FloatTensor
-        Node nids to be split. 
+        Node nids to be split.
     labels: LongTensor
-        Node labels of the nodes in <nids>. 
+        Node labels of the nodes in <nids>.
         <nids> and <labels> should be the same size.
     Return: tuple (LongTensor, LongTensor)
         Two splits of the nodes.
@@ -309,9 +331,9 @@ def pos_neg_split(nids, labels):
     Parameters
     ----------
     nids: FloatTensor
-        Node nids to be split. 
+        Node nids to be split.
     labels: LongTensor
-        Node labels of the nodes in <nids>. 
+        Node labels of the nodes in <nids>.
         <nids> and <labels> should be the same size.
     Return: tuple (LongTensor, LongTensor)
         Two splits of the nodes.
@@ -338,7 +360,7 @@ def under_sample(pos_nids, neg_nids, scale=1):
     index = np.arange(neg_nids.shape[0])
     index = np.random.RandomState().permutation(index)
     N = min(int(pos_nids.shape[0] * scale), neg_nids.shape[0])
-    index = index[0: N]
+    index = index[0:N]
     neg_sampled = neg_nids[index]
     sampled_nids = torch.cat((pos_nids, neg_sampled))
 

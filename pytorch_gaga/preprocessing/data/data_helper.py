@@ -35,21 +35,34 @@ def row_normalize(mx, dtype=np.float32):
     """
     rowsum = np.array(mx.sum(1)) + 0.01
     r_inv = np.power(rowsum, -1).flatten()
-    r_inv[np.isinf(r_inv)] = 0.
+    r_inv[np.isinf(r_inv)] = 0.0
     r_mat_inv = sp.diags(r_inv)
     mx = r_mat_inv.dot(mx)
     return mx.astype(dtype)
 
 
-def load_graphs(dataset_name='amazon', raw_dir='~/.dgl/', train_size=0.4, val_size=0.1,
-                seed=717, norm=True, force_reload=False, verbose=True) -> dict:
+def load_graphs(
+    dataset_name='amazon',
+    raw_dir='~/.dgl/',
+    train_size=0.4,
+    val_size=0.1,
+    seed=717,
+    norm=True,
+    force_reload=False,
+    verbose=True,
+) -> dict:
     """Loading dataset from dgl's FraudDataset.
     这里的设计目前是冗余且不必要的,可以直接使用dgl的异构图来处理.
     为了兼容后期的数据集, 将每一张图单独处理
     """
     if dataset_name in ['amazon', 'yelp', 'mimic']:
-        fraud_data = fraud_dataset.FraudDataset(dataset_name, train_size=train_size, val_size=val_size,
-                                                random_seed=seed, force_reload=force_reload)
+        fraud_data = fraud_dataset.FraudDataset(
+            dataset_name,
+            train_size=train_size,
+            val_size=val_size,
+            random_seed=seed,
+            force_reload=force_reload,
+        )
     # elif dataset_name in ['BF10M']:
     #     fraud_data = baidu_dataset.BaiduFraudDataset(dataset_name, raw_dir=raw_dir,
     #                                                  train_size=train_size, val_size=val_size,
@@ -104,14 +117,14 @@ def calc_weight(g):
     with g.local_scope():
         # @todo (yuchen) 这里原本是 $\hat A = D^{-1/2}AD^{-1/2}$, 假设A=I,后期改一下
         # Computing D^(-0.5)*D(-1/2), assuming A is Identity
-        g.ndata["in_deg"] = g.in_degrees().float().pow(-0.5)
-        g.ndata["out_deg"] = g.out_degrees().float().pow(-0.5)
-        g.apply_edges(fn.u_mul_v("out_deg", "in_deg", "weight"))
+        g.ndata['in_deg'] = g.in_degrees().float().pow(-0.5)
+        g.ndata['out_deg'] = g.out_degrees().float().pow(-0.5)
+        g.apply_edges(fn.u_mul_v('out_deg', 'in_deg', 'weight'))
 
         # Row-normalize weight
-        g.update_all(fn.copy_e("weight", "msg"), fn.sum("msg", "norm"))
-        g.apply_edges(fn.e_div_v("weight", "norm", "weight"))
-        return g.edata["weight"]
+        g.update_all(fn.copy_e('weight', 'msg'), fn.sum('msg', 'norm'))
+        g.apply_edges(fn.e_div_v('weight', 'norm', 'weight'))
+        return g.edata['weight']
 
 
 def preprocess(args, g, features):
@@ -130,33 +143,35 @@ def preprocess(args, g, features):
     """
     # g = dgl.to_homogeneous(g)
     with torch.no_grad():
-        g.edata["weight"] = calc_weight(g)
-        g.ndata["feat_0"] = features
+        g.edata['weight'] = calc_weight(g)
+        g.ndata['feat_0'] = features
         for hop in range(1, args['n_hops'] + 1):
-            g.update_all(fn.u_mul_e(f"feat_{hop - 1}", "weight", "msg"),
-                         fn.sum("msg", f"feat_{hop}"))
+            g.update_all(
+                fn.u_mul_e(f'feat_{hop - 1}', 'weight', 'msg'),
+                fn.sum('msg', f'feat_{hop}'),
+            )
         hop_feat_list = []
         for hop in range(args['n_hops'] + 1):
-            hop_feat_list.append(g.ndata.pop(f"feat_{hop}"))
+            hop_feat_list.append(g.ndata.pop(f'feat_{hop}'))
         return hop_feat_list
 
 
 def mask_nodes(nids, label_rate=0.5, seed=717):
     index = np.arange(nids.shape[0])
     index = np.random.RandomState(seed).permutation(index)
-    unmasked_idx = index[:int(label_rate * len(index))]
-    masked_idx = index[int(label_rate * len(index)):]
+    unmasked_idx = index[: int(label_rate * len(index))]
+    masked_idx = index[int(label_rate * len(index)) :]
     unmasked_nid = nids[unmasked_idx]
     masked_nid = nids[masked_idx]
 
     return unmasked_nid, masked_nid
-    
-    
+
+
 def add_label_emb(unmasked_nid, features, labels):
     n_nodes = features.shape[0]
     pos_nid, neg_nid = pos_neg_split(unmasked_nid, labels[unmasked_nid])
-    padding_feat = torch.zeros((n_nodes,3))
-    padding_feat[:, -1]  = 1
+    padding_feat = torch.zeros((n_nodes, 3))
+    padding_feat[:, -1] = 1
     padding_feat[unmasked_nid, -1] = 0
 
     if pos_nid.shape != torch.Size([0]):
@@ -167,9 +182,9 @@ def add_label_emb(unmasked_nid, features, labels):
 
     new_feat = torch.cat([features, padding_feat], dim=1)
 
-    return new_feat 
-    
-    
+    return new_feat
+
+
 def prepare_data(args):
     """Preparing training data.
 
@@ -183,10 +198,15 @@ def prepare_data(args):
          ...,
          [feat_0, feat_1,...,feat_R]]  // hop-R
     """
-    graphs = load_graphs(dataset_name=args['dataset'], raw_dir=args['base_dir'],
-                         train_size=args['train_size'], val_size=args['val_size'],
-                         seed=args['seed'], norm=args['norm_feat'],
-                         force_reload=args['force_reload'])
+    graphs = load_graphs(
+        dataset_name=args['dataset'],
+        raw_dir=args['base_dir'],
+        train_size=args['train_size'],
+        val_size=args['val_size'],
+        seed=args['seed'],
+        norm=args['norm_feat'],
+        force_reload=args['force_reload'],
+    )
 
     # MR-Graphs share same {feat,label,mask}, here we can load homo_g
     g = graphs['homo']
@@ -212,11 +232,13 @@ def prepare_data(args):
             feats = preprocess(args, vg, vg.ndata['feature'].float())
             feat_list.append(feats)
 
-    print(f"[Global] Dataset <{args['dataset']}> Overview\n"
-          f"\tEntire (postive/total) {torch.sum(labels):>6} / {labels.shape[0]:<6}\n"
-          f"\tTrain  (postive/total) {torch.sum(labels[train_nid]):>6} / {labels[train_nid].shape[0]:<6}\n"
-          f"\tValid  (postive/total) {torch.sum(labels[val_nid]):>6} / {labels[val_nid].shape[0]:<6}\n"
-          f"\tTest   (postive/total) {torch.sum(labels[test_nid]):>6} / {labels[test_nid].shape[0]:<6}\n")
+    print(
+        f"[Global] Dataset <{args['dataset']}> Overview\n"
+        f"\tEntire (postive/total) {torch.sum(labels):>6} / {labels.shape[0]:<6}\n"
+        f"\tTrain  (postive/total) {torch.sum(labels[train_nid]):>6} / {labels[train_nid].shape[0]:<6}\n"
+        f"\tValid  (postive/total) {torch.sum(labels[val_nid]):>6} / {labels[val_nid].shape[0]:<6}\n"
+        f"\tTest   (postive/total) {torch.sum(labels[test_nid]):>6} / {labels[test_nid].shape[0]:<6}\n"
+    )
 
     return feat_list, labels, in_feats, n_classes, train_nid, val_nid, test_nid
 
@@ -291,7 +313,7 @@ def under_sample(pos_nids, neg_nids, scale=1):
     index = np.arange(neg_nids.shape[0])
     index = np.random.RandomState().permutation(index)
     N = min(int(pos_nids.shape[0] * scale), neg_nids.shape[0])
-    index = index[0: N]
+    index = index[0:N]
     neg_sampled = neg_nids[index]
     sampled_nids = torch.cat((pos_nids, neg_sampled))
 

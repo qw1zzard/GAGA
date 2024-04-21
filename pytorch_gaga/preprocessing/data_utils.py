@@ -13,14 +13,16 @@ from data import fraud_dataset, data_helper
 # 这里有一个优化内存开销的点
 # 有空检查graphs内的ndata是否存在多副本
 class GroupFeatureSequenceLoader:
-    def __init__(self, graph_data: namedtuple, default_feat=None, fanouts=None, grp_norm=False):
+    def __init__(
+        self, graph_data: namedtuple, default_feat=None, fanouts=None, grp_norm=False
+    ):
         # 用作孤立点的默认值
         if not default_feat:
             default_feat = torch.zeros(graph_data.feat_dim)
 
         # 分组为空, 默认补0
         self.default_feat = default_feat
-        
+
         self.relations = list(graph_data.graph.etypes)
         self.features = graph_data.features
         self.labels = graph_data.labels
@@ -30,7 +32,7 @@ class GroupFeatureSequenceLoader:
         self.grp_norm = grp_norm
 
         self.graph = graph_data.graph
-        
+
         # full sampling不现实
         self.fanouts = [-1] if fanouts is None else fanouts
 
@@ -51,29 +53,31 @@ class GroupFeatureSequenceLoader:
             batch_nid = batch_nid.unsqueeze(0)
         cnt = 0
         for nid in tqdm(batch_nid):
-#             cnt +=1
-#             if cnt % 10000 == 0:
-#                 print(f"[Process {pid:>2d}] Total processed nodes={cnt}")
+            #             cnt +=1
+            #             if cnt % 10000 == 0:
+            #                 print(f"[Process {pid:>2d}] Total processed nodes={cnt}")
             feat_list = []
             # dict{etype1: list[hop1_tensor1, hop2_tensor2,...],...}
             neighbor_dict = self._sample_multi_hop_neighbors(nid)
-        
+
             for etype in self.graph.etypes:
                 multi_hop_neighbor_list = neighbor_dict[etype]
                 # ((n_classes + 1) * n_hops + 1), E)
-                feat_list.append(self._group_aggregation(nid, batch_nid, multi_hop_neighbor_list))
+                feat_list.append(
+                    self._group_aggregation(nid, batch_nid, multi_hop_neighbor_list)
+                )
 
             #  (n_relations*(n_classes + 1 + 1),E)
             grp_feat = torch.cat(feat_list, dim=0)
             grp_feat_list.append(grp_feat)
-            
+
             del neighbor_dict
 
         # N,(S,E)->(N,S,E)
         batch_feats = torch.stack(grp_feat_list, dim=0)
         print(batch_feats.shape)
         # (S,N,E)
-#         batch_feats = torch.transpose(batch_feats, 0, 1)
+        #         batch_feats = torch.transpose(batch_feats, 0, 1)
 
         return batch_feats
 
@@ -92,7 +96,9 @@ class GroupFeatureSequenceLoader:
                     nbs = rel_g.in_edges(nbs)[0]
                     sample_num = min(nbs.shape[0], max_degree)
                     # print(f"[{self.__class__.__name__}] sample_num = {sample_num}")
-                    nbs = np.random.choice(nbs.numpy(), size=(sample_num,), replace=replace, p=probs)
+                    nbs = np.random.choice(
+                        nbs.numpy(), size=(sample_num,), replace=replace, p=probs
+                    )
                     nbs = torch.LongTensor(nbs)
 
                 # 存储当前点在关系etype上的第k跳邻居, b=nbs按照tensor存储
@@ -111,7 +117,7 @@ class GroupFeatureSequenceLoader:
 
     def _group_aggregation(self, nid, batch_nid, multi_hop_neighbor_list):
         """TODO (yuchen) 这部分是瓶颈所在
-           优化参照:
+        优化参照:
         """
         # nid转化为标量
         nid = nid.item()
@@ -122,7 +128,9 @@ class GroupFeatureSequenceLoader:
         for neighbors in multi_hop_neighbor_list:
             if neighbors.shape == torch.Size([0]):
                 # 这里暂时写死为3组, 220118修改:添加self-loop,neighbor不可能为0
-                agg_feat = torch.stack([self.default_feat, self.default_feat, self.default_feat], dim=0)
+                agg_feat = torch.stack(
+                    [self.default_feat, self.default_feat, self.default_feat], dim=0
+                )
             else:
                 # 中心点nid的邻居集合
                 nb_set = set(neighbors.tolist())
@@ -137,27 +145,29 @@ class GroupFeatureSequenceLoader:
                 # 这里曾经是个bug, 多跳造成标签泄露(无自回路，一阶邻居分组聚合不受影响)
                 unmasked_set.discard(nid)
                 unmasked_nid = torch.LongTensor(list(unmasked_set))
-                
+
                 # 可以去除断言
-#                 assert nid not in unmasked_set
-#                 assert unmasked_set.intersection(self.val_nid_set) == set(), \
-#                     "label leakage in val_nids"
-#                 assert unmasked_set.intersection(self.test_nid_set) == set(), \
-#                     "label leakage in test_nids"
+                #                 assert nid not in unmasked_set
+                #                 assert unmasked_set.intersection(self.val_nid_set) == set(), \
+                #                     "label leakage in val_nids"
+                #                 assert unmasked_set.intersection(self.test_nid_set) == set(), \
+                #                     "label leakage in test_nids"
 
                 # $h^*$ 的nodes
                 masked_set = nb_set.difference(unmasked_set)
                 masked_nid = torch.LongTensor(list(masked_set))
 
                 # $h^+$ 和 $h^-$ 的nodes
-                pos_nid, neg_nid = data_helper.pos_neg_split(unmasked_nid, self.labels[unmasked_nid])
+                pos_nid, neg_nid = data_helper.pos_neg_split(
+                    unmasked_nid, self.labels[unmasked_nid]
+                )
                 h_0 = self._feat_aggregation(neg_nid)
                 h_1 = self._feat_aggregation(pos_nid)
                 h_2 = self._feat_aggregation(masked_nid)
 
                 # (E,)
                 agg_feat = torch.stack([h_0, h_1, h_2], dim=0)
-                assert nid not in unmasked_set, f"error, node {nid} label leakage"
+                assert nid not in unmasked_set, f'error, node {nid} label leakage'
                 # print(f"nid={nid} in unmasked_set={unmasked_set}, masked_set={masked_set}")
 
             feat_list.append(agg_feat)
@@ -182,20 +192,24 @@ class GroupFeatureSequenceLoader:
 
 
 def prepare_data(args, add_self_loop=False):
-    g = load_graph(dataset_name=args['dataset'], raw_dir=args['base_dir'],
-                   train_size=args['train_size'], val_size=args['val_size'],
-                   seed=args['seed'], norm=args['norm_feat'],
-                   force_reload=args['force_reload'])
-    
+    g = load_graph(
+        dataset_name=args['dataset'],
+        raw_dir=args['base_dir'],
+        train_size=args['train_size'],
+        val_size=args['val_size'],
+        seed=args['seed'],
+        norm=args['norm_feat'],
+        force_reload=args['force_reload'],
+    )
+
     relations = list(g.etypes)
     if add_self_loop is True:
         for etype in relations:
             g = dgl.remove_self_loop(g, etype=etype)
             g = dgl.add_self_loop(g, etype=etype)
-        
+
         print('add self-loop for ', g)
-    
-    
+
     # Processing mask
     train_mask = g.ndata['train_mask']
     val_mask = g.ndata['val_mask']
@@ -211,30 +225,65 @@ def prepare_data(args, add_self_loop=False):
     feat_dim = features.shape[1]
     labels = g.ndata['label'].squeeze().long()
 
-    print(f"[Global] Dataset <{args['dataset']}> Overview\n"
-          f"\tEntire (postive/total) {torch.sum(labels):>6} / {labels.shape[0]:<6}\n"
-          f"\tTrain  (postive/total) {torch.sum(labels[train_nid]):>6} / {labels[train_nid].shape[0]:<6}\n"
-          f"\tValid  (postive/total) {torch.sum(labels[val_nid]):>6} / {labels[val_nid].shape[0]:<6}\n"
-          f"\tTest   (postive/total) {torch.sum(labels[test_nid]):>6} / {labels[test_nid].shape[0]:<6}\n")
+    print(
+        f"[Global] Dataset <{args['dataset']}> Overview\n"
+        f"\tEntire (postive/total) {torch.sum(labels):>6} / {labels.shape[0]:<6}\n"
+        f"\tTrain  (postive/total) {torch.sum(labels[train_nid]):>6} / {labels[train_nid].shape[0]:<6}\n"
+        f"\tValid  (postive/total) {torch.sum(labels[val_nid]):>6} / {labels[val_nid].shape[0]:<6}\n"
+        f"\tTest   (postive/total) {torch.sum(labels[test_nid]):>6} / {labels[test_nid].shape[0]:<6}\n"
+    )
 
-    Datatype = namedtuple('GraphData', ['graph', 'features', 'labels', 'train_nid', 'val_nid',
-                                        'test_nid', 'n_classes', 'feat_dim', 'n_relations'])
-    graph_data = Datatype(graph=g, features=features, labels=labels, train_nid=train_nid,
-                          val_nid=val_nid, test_nid=test_nid, n_classes=n_classes,
-                          feat_dim=feat_dim, n_relations=n_relations)
+    Datatype = namedtuple(
+        'GraphData',
+        [
+            'graph',
+            'features',
+            'labels',
+            'train_nid',
+            'val_nid',
+            'test_nid',
+            'n_classes',
+            'feat_dim',
+            'n_relations',
+        ],
+    )
+    graph_data = Datatype(
+        graph=g,
+        features=features,
+        labels=labels,
+        train_nid=train_nid,
+        val_nid=val_nid,
+        test_nid=test_nid,
+        n_classes=n_classes,
+        feat_dim=feat_dim,
+        n_relations=n_relations,
+    )
 
     return graph_data
 
 
-def load_graph(dataset_name='amazon', raw_dir='~/.dgl/', train_size=0.4, val_size=0.1,
-               seed=717, norm=True, force_reload=False, verbose=True) -> dict:
+def load_graph(
+    dataset_name='amazon',
+    raw_dir='~/.dgl/',
+    train_size=0.4,
+    val_size=0.1,
+    seed=717,
+    norm=True,
+    force_reload=False,
+    verbose=True,
+) -> dict:
     """Loading dataset from dgl's FraudDataset.
     这里的设计目前是冗余且不必要的,可以直接使用dgl的异构图来处理.
     为了兼容后期的数据集, 将每一张图单独处理
     """
     if dataset_name in ['amazon', 'yelp', 'mimic']:
-        fraud_data = fraud_dataset.FraudDataset(dataset_name, train_size=train_size, val_size=val_size,
-                                                random_seed=seed, force_reload=force_reload)
+        fraud_data = fraud_dataset.FraudDataset(
+            dataset_name,
+            train_size=train_size,
+            val_size=val_size,
+            random_seed=seed,
+            force_reload=force_reload,
+        )
     # elif dataset_name in ['BF10M']:
     #     fraud_data = baidu_dataset.BaiduFraudDataset(dataset_name, raw_dir=raw_dir,
     #                                                  train_size=train_size, val_size=val_size,

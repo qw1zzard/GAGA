@@ -5,51 +5,68 @@ from modules import embedding
 
 
 class TransformerEncoderNet(nn.Module):
-    def __init__(self, feat_dim, emb_dim, n_classes, n_hops, n_relations,
-                 n_heads, dim_feedforward, n_layers, dropout=0.1, agg_type='cat'):
+    def __init__(
+        self,
+        feat_dim,
+        emb_dim,
+        n_classes,
+        n_hops,
+        n_relations,
+        n_heads,
+        dim_feedforward,
+        n_layers,
+        dropout=0.1,
+        agg_type='cat',
+    ):
         r"""Transformer encoder based on torch built-in modules.
         Currently, the graph transformer is based on the implementation in PyTorch.
-            # todo (yuchen): re-implement based on ViT 
+            # todo (yuchen): re-implement based on ViT
             # Reference <https://github.com/lucidrains/vit-pytorch>
         Parameters
         ----------
         feat_dim : int
             Input feature size; i.e., number of  dimensions of the raw input feature.
         emb_dim : int
-            Hidden size of all learning embeddings and hidden vectors. 
+            Hidden size of all learning embeddings and hidden vectors.
             (deotes by E)
         n_classes : int
-            Number of classes. 
+            Number of classes.
             (deotes by C)
         n_hops : int
             Number of hops (mulit-hop neighborhood information). (deotes by K)
         n_relations : int
-            Number of relations. 
+            Number of relations.
             (deotes by R)
         n_heads : int
             Number of heads in MultiHeadAttention module.
         dim_feedforward : int
         n_layers : int
-            Number of encoders layers. 
+            Number of encoders layers.
         dropout: float
             Dropout rate on feature. Default=0.1.
         agg_type: str
             Cross-relation aggregation type, including 'cat' and 'mean'.
-        
+
         Return : torch.Tensor
-            Final representation of target node(s). 
-            Shape=(N, R \times E)     
-        """ 
+            Final representation of target node(s).
+            Shape=(N, R \times E)
+        """
         super(TransformerEncoderNet, self).__init__()
 
         # encoder that provides hop, relation and group encodings
-        self.feat_encoder = embedding.CustomEncoder(feat_dim=feat_dim,
-                                                    emb_dim=emb_dim, n_relations=n_relations,
-                                                    n_hops=n_hops, dropout=dropout,
-                                                    n_classes=n_classes)
+        self.feat_encoder = embedding.CustomEncoder(
+            feat_dim=feat_dim,
+            emb_dim=emb_dim,
+            n_relations=n_relations,
+            n_hops=n_hops,
+            dropout=dropout,
+            n_classes=n_classes,
+        )
 
         # define transformer encoder
-        encoder_layers = nn.TransformerEncoderLayer(emb_dim, n_heads, dim_feedforward, dropout)
+        encoder_layers = nn.TransformerEncoderLayer(
+            emb_dim, n_heads, dim_feedforward, dropout
+        )
         self.transformer_encoder = nn.TransformerEncoder(encoder_layers, n_layers)
 
         # cross-relation aggregation type (Figure 2 \ding{206})
@@ -82,7 +99,7 @@ class TransformerEncoderNet(nn.Module):
         out : torch.Tensor
             The output tensor of Transformer Encoder.
             Shape = (S, N, E)
-        
+
         """
         # todo (yuchen): provide ['cat', 'mean', 'weight', 'atten'] aggregators
         device = out.device
@@ -131,4 +148,4 @@ class TransformerEncoderNet(nn.Module):
         # prediction
         out = self.projection(out)
 
-        return out 
+        return out

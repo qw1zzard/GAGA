@@ -25,6 +25,8 @@ The PyTorch implementation of GAGA.
       conda install pytorch torchvision torchaudio pytorch-cuda=12.1 -c pytorch -c nvidia
       conda install -c dglteam/label/cu121 dgl
 
+      conda install -c conda-forge ruff
+
       pip install numpy pandas scikit-learn tensorboard matplotlib
 
       conda clean --all

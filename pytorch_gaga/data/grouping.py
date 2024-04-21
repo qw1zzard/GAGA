@@ -10,8 +10,9 @@ from data import fraud_dataset, data_helper
 
 
 class GroupFeatureSequenceLoader:
-    def __init__(self, graph_data: namedtuple, default_feat=None, fanouts=None,
-                 grp_norm=False):
+    def __init__(
+        self, graph_data: namedtuple, default_feat=None, fanouts=None, grp_norm=False
+    ):
         # 用作孤立点的默认值
         if not default_feat:
             default_feat = torch.zeros(graph_data.feat_dim)
@@ -49,7 +50,9 @@ class GroupFeatureSequenceLoader:
                 # dict(etype: list([hop1_nb_tensor, hop2_nb_tensor,...]))
                 multi_hop_neighbors = neighbor_dict[etype]
                 # ((n_classes + 1) * n_hops + 1), E)
-                feat_list.append(self._group_aggregation(nid, batch_nid, multi_hop_neighbors))
+                feat_list.append(
+                    self._group_aggregation(nid, batch_nid, multi_hop_neighbors)
+                )
 
             #  (n_relations*(n_classes + 1 + 1),E)
             grp_feat = torch.cat(feat_list, dim=0)
@@ -77,7 +80,9 @@ class GroupFeatureSequenceLoader:
                     nbs = rel_g.in_edges(nbs)[0]
                     sample_num = min(nbs.shape[0], max_degree)
                     # print(f"[{self.__class__.__name__}] sample_num = {sample_num}")
-                    nbs = np.random.choice(nbs.numpy(), size=(sample_num,), replace=replace, p=probs)
+                    nbs = np.random.choice(
+                        nbs.numpy(), size=(sample_num,), replace=replace, p=probs
+                    )
                     nbs = torch.LongTensor(nbs)
 
                 # 存储当前点在关系etype上的第k跳邻居, b=nbs按照tensor存储
@@ -94,7 +99,7 @@ class GroupFeatureSequenceLoader:
 
     def _group_aggregation(self, nid, batch_nid, multi_hop_neighbors):
         """TODO (yuchen) 这部分是瓶颈所在
-            参照
+        参照
         """
         # 中心点特征
         center_feat = self.features[nid]
@@ -103,7 +108,9 @@ class GroupFeatureSequenceLoader:
         # neighbor为tensor
         for neighbors in multi_hop_neighbors:
             if neighbors.shape == torch.Size([0]):
-                agg_feat = torch.stack([self.default_feat, self.default_feat, self.default_feat], dim=0)
+                agg_feat = torch.stack(
+                    [self.default_feat, self.default_feat, self.default_feat], dim=0
+                )
             else:
                 # 中心点nid的邻居集合
                 nb_set = set(neighbors.tolist())
@@ -128,7 +135,9 @@ class GroupFeatureSequenceLoader:
                 masked_nid = torch.LongTensor(list(masked_set))
 
                 # $h^+$ 和 $h^-$ 的nodes
-                pos_nid, neg_nid = data_helper.pos_neg_split(unmasked_nid, self.labels[unmasked_nid])
+                pos_nid, neg_nid = data_helper.pos_neg_split(
+                    unmasked_nid, self.labels[unmasked_nid]
+                )
                 h_0 = self._feat_aggregation(neg_nid)
                 h_1 = self._feat_aggregation(pos_nid)
                 h_2 = self._feat_aggregation(masked_nid)
@@ -160,10 +169,15 @@ class GroupFeatureSequenceLoader:
 
 
 def prepare_data(args):
-    g = load_graph(dataset_name=args['dataset'], raw_dir=args['base_dir'],
-                   train_size=args['train_size'], val_size=args['val_size'],
-                   seed=args['seed'], norm=args['norm_feat'],
-                   force_reload=args['force_reload'])
+    g = load_graph(
+        dataset_name=args['dataset'],
+        raw_dir=args['base_dir'],
+        train_size=args['train_size'],
+        val_size=args['val_size'],
+        seed=args['seed'],
+        norm=args['norm_feat'],
+        force_reload=args['force_reload'],
+    )
 
     # Processing mask
     train_mask = g.ndata['train_mask']
@@ -179,29 +193,63 @@ def prepare_data(args):
     feat_dim = features.shape[1]
     labels = g.ndata['label'].squeeze().long()
 
-    print(f"[Global] Dataset <{args['dataset']}> Overview\n"
-          f"\tEntire (postive/total) {torch.sum(labels):>6} / {labels.shape[0]:<6}\n"
-          f"\tTrain  (postive/total) {torch.sum(labels[train_nid]):>6} / {labels[train_nid].shape[0]:<6}\n"
-          f"\tValid  (postive/total) {torch.sum(labels[val_nid]):>6} / {labels[val_nid].shape[0]:<6}\n"
-          f"\tTest   (postive/total) {torch.sum(labels[test_nid]):>6} / {labels[test_nid].shape[0]:<6}\n")
+    print(
+        f"[Global] Dataset <{args['dataset']}> Overview\n"
+        f"\tEntire (postive/total) {torch.sum(labels):>6} / {labels.shape[0]:<6}\n"
+        f"\tTrain  (postive/total) {torch.sum(labels[train_nid]):>6} / {labels[train_nid].shape[0]:<6}\n"
+        f"\tValid  (postive/total) {torch.sum(labels[val_nid]):>6} / {labels[val_nid].shape[0]:<6}\n"
+        f"\tTest   (postive/total) {torch.sum(labels[test_nid]):>6} / {labels[test_nid].shape[0]:<6}\n"
+    )
 
-    Datatype = namedtuple('GraphData', ['graph', 'features', 'labels', 'train_nid', 'val_nid',
-                                        'test_nid', 'n_classes', 'feat_dim'])
-    graph_data = Datatype(graph=g, features=features, labels=labels, train_nid=train_nid,
-                          val_nid=val_nid, test_nid=test_nid, n_classes=n_classes, feat_dim=feat_dim)
+    Datatype = namedtuple(
+        'GraphData',
+        [
+            'graph',
+            'features',
+            'labels',
+            'train_nid',
+            'val_nid',
+            'test_nid',
+            'n_classes',
+            'feat_dim',
+        ],
+    )
+    graph_data = Datatype(
+        graph=g,
+        features=features,
+        labels=labels,
+        train_nid=train_nid,
+        val_nid=val_nid,
+        test_nid=test_nid,
+        n_classes=n_classes,
+        feat_dim=feat_dim,
+    )
 
     return graph_data
 
 
-def load_graph(dataset_name='amazon', raw_dir='~/.dgl/', train_size=0.4, val_size=0.1,
-               seed=717, norm=True, force_reload=False, verbose=True) -> dict:
+def load_graph(
+    dataset_name='amazon',
+    raw_dir='~/.dgl/',
+    train_size=0.4,
+    val_size=0.1,
+    seed=717,
+    norm=True,
+    force_reload=False,
+    verbose=True,
+) -> dict:
     """Loading dataset from dgl's FraudDataset.
     这里的设计目前是冗余且不必要的,可以直接使用dgl的异构图来处理.
     为了兼容后期的数据集, 将每一张图单独处理
     """
     if dataset_name in ['amazon', 'yelp', 'mimic']:
-        fraud_data = fraud_dataset.FraudDataset(dataset_name, train_size=train_size, val_size=val_size,
-                                                random_seed=seed, force_reload=force_reload)
+        fraud_data = fraud_dataset.FraudDataset(
+            dataset_name,
+            train_size=train_size,
+            val_size=val_size,
+            random_seed=seed,
+            force_reload=force_reload,
+        )
     # elif dataset_name in ['BF10M']:
     #     fraud_data = baidu_dataset.BaiduFraudDataset(dataset_name, raw_dir=raw_dir,
     #                                                  train_size=train_size, val_size=val_size,
