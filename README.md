@@ -28,6 +28,7 @@ The PyTorch implementation of GAGA.
       conda install -c conda-forge ruff
 
       pip install numpy pandas scikit-learn tensorboard matplotlib
+      pip install numpy pandas scikit-learn tensorboard matplotlib wandb
 
       conda clean --all
      ```

@@ -4,6 +4,8 @@ from sklearn import metrics
 import numpy as np
 from collections import namedtuple
 
+import wandb
+
 
 def calc_acc(y_true, y_pred):
     """
@@ -35,6 +37,7 @@ def calc_roc_and_thres(y_true, y_prob):
     # 输出KS值
     ks_val = max(abs(J))
     print(f'(Kolmogorov-Smirnov) KS = {ks_val:>2.4f}\n')
+    wandb.log({'KS': ks_val})
 
     idx = J.argmax(axis=0)
     best_thres = thresholds[idx]
@@ -144,6 +147,14 @@ def eval_model(y_true, y_prob, y_pred):
         f'ACC={acc:>2.4f} | Recall(macro)={recall_macro:>2.4f}\n'
     )
 
+    wandb.log({'f1-macro': f1_macro, 'AUC': auc_gnn,
+               'Gmean': gmean_gnn, 'AP(gnn)': ap_gnn,
+               'Precision(1)': precision_1, 'Recall(1)': recall_1,
+               'TN': tn, 'FP': fp, 'FN': fn, 'TP': tp,
+               'f1-fraud': f1_binary_1, 'f1-benign': f1_binary_0,
+               'f1-micro': f1_micro, 'f1-macro': f1_macro,
+               'ACC': acc, 'Recall(macro)': recall_macro})
+
     # print(metrics.classification_report(y_true=labels, y_pred=preds, digits=4))
 
     DataType = namedtuple(
@@ -201,6 +212,7 @@ def calc_mean_sd(results):
     ]
     for i, name in enumerate(metric_name):
         print('{}= {:1.4f}±{:1.4f}'.format(name, MEAN[i], SSD[i]))
+        wandb.log({f'{name}_mean': MEAN[i]})
 
 
 class ThresholdSelector:
@@ -235,11 +247,13 @@ class ThresholdSelector:
         result_list = []
         for thres in thresholds:
             print(f'Thres={thres:.2f}')
+            wandb.log({'Thres': thres})
             result = eval_model(labels, self.probs[:, 1], thres=thres)
             result_list.append(result)
             benchmark_list.append(result.f1_binary_0)
 
         self.best_thres = thresholds[np.array(benchmark_list).argmax(axis=0)]
         print(f'[{self.__class__.__name__}] Best threshold is {self.best_thres:.2f}')
+        wandb.log({f'[{self.__class__.__name__}] Best threshold is': self.best_thres})
 
         return self.best_thres

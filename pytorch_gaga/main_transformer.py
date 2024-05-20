@@ -10,6 +10,8 @@ from data import sequence
 from modules import models
 from utils import utility, metrics, earlystopping, log_tools, plot_tools
 
+import wandb
+
 
 def evaluation(
     args, model, eval_loader, threshold_moving=True, thres=0.5, device='cpu'
@@ -194,6 +196,8 @@ def train(args, data, dataset, run_id):
                 f'AVG. loss={total_loss / len(train_loader): 3.4f}, '
                 f'Elapsed time={timer.avg_time:.2f}(s)'
             )
+            loss_score = total_loss / len(train_loader)
+            wandb.log({'epoch': epoch, 'loss': loss_score, 'time': timer.avg_time})
             val_true, val_prob, val_pred = evaluation(
                 args, model, val_loader, device=eval_device
             )
@@ -209,6 +213,7 @@ def train(args, data, dataset, run_id):
     summary.close()
 
     print('\nBest Epoch {}, Val {:.4f}'.format(stopper.best_ep, stopper.best_score))
+    wandb.log({'best_ep': stopper.best_ep, 'best_score': stopper.best_score})
 
     if args['early_stop']:
         stopper.load_checkpoint(model)
@@ -232,6 +237,8 @@ def train(args, data, dataset, run_id):
             f'best_roc_thres: {val_results.best_roc_thres} \n'
             f'best_pr_thres: {val_results.best_pr_thres}'
         )
+        wandb.log({'best_roc_thres': val_results.best_roc_thres,
+                   'best_pr_thres': val_results.best_pr_thres})
         te_true, te_prob, te_pred = evaluation(
             args,
             model,
@@ -240,6 +247,8 @@ def train(args, data, dataset, run_id):
             device=eval_device,
         )
         results = metrics.eval_model(te_true, te_prob, te_pred)
+
+    wandb.log({'f1_macro': results.f1_macro, 'auc_gnn': results.auc_gnn, 'best_ep': stopper.best_ep})
 
     return [
         results.f1_macro,
@@ -291,6 +300,42 @@ if __name__ == '__main__':
     args = vars(parser.parse_args())
     train_config = utility.load_config(args['config'])
     args = utility.setup_args(args, train_config)
+
+    wandb.init(
+        # set the wandb project where this run will be logged
+        project='gaga',
+        # track hyperparameters and run metadata
+        config={
+            'config': args['config'],
+            'log_dir': args['log_dir'],
+            'early_stop': args['early_stop'],
+            'gpu': args['gpu'],
+            'n_workers': args['n_workers'],
+            'n_runs': args['n_runs'],
+            'agg_type': args['agg_type'],
+            'base_dir': args['base_dir'],
+            'batch_size': args['batch_size'],
+            'cpu_eval': args['cpu_eval'],
+            'dataset': args['dataset'],
+            'dropout': args['dropout'],
+            'emb_dim': args['emb_dim'],
+            'eval_interval': args['eval_interval'],
+            'ff_dim': args['ff_dim'],
+            'flush_seconds': args['flush_seconds'],
+            'force_reload': args['force_reload'],
+            'grp_norm': args['grp_norm'],
+            'lr': args['lr'],
+            'n_heads': args['n_heads'],
+            'n_hops': args['n_hops'],
+            'n_layers': args['n_layers'],
+            'norm_feat': args['norm_feat'],
+            'max_epochs': args['max_epochs'],
+            'seed': args['seed'],
+            'train_size': args['train_size'],
+            'val_size': args['val_size'],
+            'weight_decay': args['weight_decay'],
+        },
+    )
 
     # load input sequence preprocessed by graph2seq_mp.py
     data = sequence.load_sequence_data(args)
