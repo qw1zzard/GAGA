@@ -1,16 +1,14 @@
 import argparse
+
 import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader
-import numpy as np
-import os
 from tqdm import tqdm
 
+import wandb
 from data import sequence
 from modules import models
-from utils import utility, metrics, earlystopping, log_tools, plot_tools
-
-import wandb
+from utils import earlystopping, log_tools, metrics, plot_tools, utility
 
 
 def evaluation(
@@ -237,8 +235,12 @@ def train(args, data, dataset, run_id):
             f'best_roc_thres: {val_results.best_roc_thres} \n'
             f'best_pr_thres: {val_results.best_pr_thres}'
         )
-        wandb.log({'best_roc_thres': val_results.best_roc_thres,
-                   'best_pr_thres': val_results.best_pr_thres})
+        wandb.log(
+            {
+                'best_roc_thres': val_results.best_roc_thres,
+                'best_pr_thres': val_results.best_pr_thres,
+            }
+        )
         te_true, te_prob, te_pred = evaluation(
             args,
             model,
@@ -248,7 +250,13 @@ def train(args, data, dataset, run_id):
         )
         results = metrics.eval_model(te_true, te_prob, te_pred)
 
-    wandb.log({'f1_macro': results.f1_macro, 'auc_gnn': results.auc_gnn, 'best_ep': stopper.best_ep})
+    wandb.log(
+        {
+            'f1_macro': results.f1_macro,
+            'auc_gnn': results.auc_gnn,
+            'best_ep': stopper.best_ep,
+        }
+    )
 
     return [
         results.f1_macro,

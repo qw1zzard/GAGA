@@ -1,12 +1,9 @@
-import dgl
-import copy
-import torch
-import numpy as np
-import math
 from collections import namedtuple
-from sklearn.cluster import KMeans
 
-from data import fraud_dataset, data_helper
+import numpy as np
+import torch
+
+from data import data_helper, fraud_dataset
 
 
 class GroupFeatureSequenceLoader:
@@ -114,9 +111,6 @@ class GroupFeatureSequenceLoader:
             else:
                 # 中心点nid的邻居集合
                 nb_set = set(neighbors.tolist())
-
-                # 当前batch中的nodes, 必定包含中心点nid
-                batch_nid_set = set(batch_nid.tolist())
 
                 # 选取邻居中的train nodes, 并排除当前中心点
                 # train_nb_set = nb_set.intersection(self.train_nid_set)

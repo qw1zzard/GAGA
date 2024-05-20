@@ -1,7 +1,8 @@
-import numpy as np
-import random
-import torch
 import json
+import random
+
+import numpy as np
+import torch
 
 
 def load_config(config_path):

@@ -17,13 +17,10 @@ Tips: seq分为两组norm与no_norm, 即在group_aggregation时每个分组上�
 
 import argparse
 import os
-import numpy as np
-import dgl
-import torch
 import time
-from tqdm import tqdm
 
 import data_utils
+import numpy as np
 
 
 def save_sequence(args, data):
@@ -31,8 +28,6 @@ def save_sequence(args, data):
 
 
 def graph2seq(args, graph_data):
-    group_loader = data_utils.GroupFeatureSequenceLoader(graph_data)
-    g = graph_data.graph
     labels = graph_data.labels
     train_nid = graph_data.train_nid
     val_nid = graph_data.val_nid
@@ -41,13 +36,7 @@ def graph2seq(args, graph_data):
 
     feat_dim = graph_data.feat_dim
     n_relations = graph_data.n_relations
-    n_groups = n_classes + 1
-    n_hops = len(args['fanouts'])
-    n_nodes = g.num_nodes()
 
-    seq_len = n_relations * (n_hops * n_groups + 1)
-
-    all_nid = g.nodes()
     file_dir = os.path.join(args['save_dir'], args['dataset'])
     os.makedirs(file_dir, exist_ok=True)
 

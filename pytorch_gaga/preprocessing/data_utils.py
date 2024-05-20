@@ -1,13 +1,12 @@
-import dgl
-import copy
-import torch
-import numpy as np
 import math
 from collections import namedtuple
-from sklearn.cluster import KMeans
+
+import dgl
+import numpy as np
+import torch
 from tqdm import tqdm
 
-from data import fraud_dataset, data_helper
+from data import data_helper, fraud_dataset
 
 
 # 这里有一个优化内存开销的点
@@ -51,7 +50,7 @@ class GroupFeatureSequenceLoader:
         # 判断batchsize是否为1
         if batch_nid.shape == torch.Size([]):
             batch_nid = batch_nid.unsqueeze(0)
-        cnt = 0
+
         for nid in tqdm(batch_nid):
             #             cnt +=1
             #             if cnt % 10000 == 0:
@@ -134,9 +133,6 @@ class GroupFeatureSequenceLoader:
             else:
                 # 中心点nid的邻居集合
                 nb_set = set(neighbors.tolist())
-
-                # 当前batch中的nodes, 必定包含中心点nid
-                batch_nid_set = set(batch_nid.tolist())
 
                 # 选取邻居中的train nodes, 并排除当前batch中的点
                 # train_nb_set = nb_set.intersection(self.train_nid_set)

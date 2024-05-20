@@ -15,16 +15,13 @@ Tips: seq分为两组norm与no_norm, 即在group_aggregation时每个分组上�
 
 """
 
-import multiprocessing as mp
 import argparse
 import os
-import numpy as np
-import dgl
-import torch
-from tqdm import tqdm
 import time
 
 import data_utils
+import numpy as np
+import torch
 
 
 def save_sequence(args, data):

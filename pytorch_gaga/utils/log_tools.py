@@ -1,7 +1,8 @@
-import time
-import os
 import datetime
 import json
+import os
+import time
+
 from torch.utils.tensorboard import SummaryWriter
 
 _b_colors = {
@@ -47,13 +48,13 @@ class Timer:
 
     def start(self):
         assert (
-            self.pair_flag == True
+            self.pair_flag == True  # noqa: E712
         ), 'The amount of timer.start() and timer.end() should be the same.'
         self.tic = time.time()
         self.pair_flag = False
 
     def end(self):
-        assert self.pair_flag == False, 'Using timer.start before timer.end'
+        assert self.pair_flag == False, 'Using timer.start before timer.end'  # noqa: E712
         self.toc = time.time()
         self.total_time += self.toc - self.tic
         self.cnt += 1
@@ -93,7 +94,6 @@ class SummaryBox:
         self.writer.add_figure(tag=tag, figure=figure, global_step=global_step)
 
     def add_graph(self, model, input_to_model):
-        tag = f'graphs/{model.__class__.__name__}'
         self.writer.add_graph(model, input_to_model)
 
     def save_config(self, configs):

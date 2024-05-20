@@ -1,13 +1,13 @@
 """Fraud Dataset"""
 
 import os
-from scipy import io, sparse
-import numpy as np
 
-from dgl.data.utils import save_graphs, load_graphs, _get_dgl_url
+import numpy as np
+from dgl import backend as F
 from dgl.convert import heterograph
 from dgl.data import DGLBuiltinDataset
-from dgl import backend as F
+from dgl.data.utils import _get_dgl_url, load_graphs, save_graphs
+from scipy import io, sparse
 
 
 class FraudDataset(DGLBuiltinDataset):
@@ -223,9 +223,9 @@ class FraudDataset(DGLBuiltinDataset):
         test_idx = index[
             int(train_size * len(index)) : len(index) - int(val_size * len(index))
         ]
-        train_mask = np.zeros(N, dtype=np.bool)
-        val_mask = np.zeros(N, dtype=np.bool)
-        test_mask = np.zeros(N, dtype=np.bool)
+        train_mask = np.zeros(N, dtype=bool)
+        val_mask = np.zeros(N, dtype=bool)
+        test_mask = np.zeros(N, dtype=bool)
         train_mask[train_idx] = True
         val_mask[val_idx] = True
         test_mask[test_idx] = True

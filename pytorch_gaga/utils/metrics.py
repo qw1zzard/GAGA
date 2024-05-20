@@ -1,8 +1,9 @@
-import torch
 import os
-from sklearn import metrics
-import numpy as np
 from collections import namedtuple
+
+import numpy as np
+import torch
+from sklearn import metrics
 
 import wandb
 
@@ -147,13 +148,25 @@ def eval_model(y_true, y_prob, y_pred):
         f'ACC={acc:>2.4f} | Recall(macro)={recall_macro:>2.4f}\n'
     )
 
-    wandb.log({'f1-macro': f1_macro, 'AUC': auc_gnn,
-               'Gmean': gmean_gnn, 'AP(gnn)': ap_gnn,
-               'Precision(1)': precision_1, 'Recall(1)': recall_1,
-               'TN': tn, 'FP': fp, 'FN': fn, 'TP': tp,
-               'f1-fraud': f1_binary_1, 'f1-benign': f1_binary_0,
-               'f1-micro': f1_micro, 'f1-macro': f1_macro,
-               'ACC': acc, 'Recall(macro)': recall_macro})
+    wandb.log(
+        {
+            'f1-macro': f1_macro,
+            'AUC': auc_gnn,
+            'Gmean': gmean_gnn,
+            'AP(gnn)': ap_gnn,
+            'Precision(1)': precision_1,
+            'Recall(1)': recall_1,
+            'TN': tn,
+            'FP': fp,
+            'FN': fn,
+            'TP': tp,
+            'f1-fraud': f1_binary_1,
+            'f1-benign': f1_binary_0,
+            'f1-micro': f1_micro,
+            'ACC': acc,
+            'Recall(macro)': recall_macro,
+        }
+    )
 
     # print(metrics.classification_report(y_true=labels, y_pred=preds, digits=4))
 
